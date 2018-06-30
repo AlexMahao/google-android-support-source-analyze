@@ -1,0 +1,28 @@
+
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 4
+
+    defaultConfig {
+        minSdkVersion 4
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs         = ['src']
+            res.srcDirs          = ['src']
+            manifest.srcFile 'AndroidManifest.xml'
+        }
+    }
+
+    lintOptions {
+        // TODO: fix errors and reenable.
+        abortOnError false
+    }
+}
