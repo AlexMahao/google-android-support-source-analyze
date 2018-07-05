@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.util.Log;
+
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.File;
@@ -119,9 +120,9 @@ final class MultiDexExtractor implements Closeable {
      * directory.
      *
      * @return a list of files that were created. The list may be empty if there
-     *         are no secondary dex files. Never return null.
+     * are no secondary dex files. Never return null.
      * @throws IOException if encounters a problem while reading or writing
-     *         secondary dex files
+     *                     secondary dex files
      */
     List<? extends File> load(Context context, String prefsKeyPrefix, boolean forceReload)
             throws IOException {
@@ -134,7 +135,9 @@ final class MultiDexExtractor implements Closeable {
 
         List<ExtractedDex> files;
         if (!forceReload && !isModified(context, sourceApk, sourceCrc, prefsKeyPrefix)) {
+            // apk信息没有发生变化
             try {
+                // 加载已存在的classX
                 files = loadExistingExtractions(context, prefsKeyPrefix);
             } catch (IOException ioe) {
                 Log.w(TAG, "Failed to reload existing extracted secondary dex files,"
@@ -149,6 +152,7 @@ final class MultiDexExtractor implements Closeable {
             } else {
                 Log.i(TAG, "Detected that extraction must be performed.");
             }
+            // 重新从apk中提取classesX.dex
             files = performExtractions();
             putStoredApkInfo(context, prefsKeyPrefix, getTimeStamp(sourceApk), sourceCrc,
                     files);
@@ -182,6 +186,7 @@ final class MultiDexExtractor implements Closeable {
 
         for (int secondaryNumber = 2; secondaryNumber <= totalDexNumber; secondaryNumber++) {
             String fileName = extractedFilePrefix + secondaryNumber + EXTRACTED_SUFFIX;
+            // 创建.dex对应的zip文件并保存到/data/data/package/code_cache/secondary-dexes/package--1.apk.classN.zip
             ExtractedDex extractedFile = new ExtractedDex(dexDir, fileName);
             if (extractedFile.isFile()) {
                 extractedFile.crc = getZipCrc(extractedFile);
@@ -214,7 +219,7 @@ final class MultiDexExtractor implements Closeable {
      * called only while owning the lock on {@link #LOCK_FILENAME}.
      */
     private static boolean isModified(Context context, File archive, long currentCrc,
-            String prefsKeyPrefix) {
+                                      String prefsKeyPrefix) {
         SharedPreferences prefs = getMultiDexPreferences(context);
         return (prefs.getLong(prefsKeyPrefix + KEY_TIME_STAMP, NO_VALUE) != getTimeStamp(archive))
                 || (prefs.getLong(prefsKeyPrefix + KEY_CRC, NO_VALUE) != currentCrc);
@@ -242,73 +247,37 @@ final class MultiDexExtractor implements Closeable {
     private List<ExtractedDex> performExtractions() throws IOException {
 
         final String extractedFilePrefix = sourceApk.getName() + EXTRACTED_NAME_EXT;
-
         // It is safe to fully clear the dex dir because we own the file lock so no other process is
         // extracting or running optimizing dexopt. It may cause crash of already running
         // applications if for whatever reason we end up extracting again over a valid extraction.
+        // 清楚缓存目录
         clearDexDir();
 
         List<ExtractedDex> files = new ArrayList<ExtractedDex>();
-
+        // 获取apk的zip对象
         final ZipFile apk = new ZipFile(sourceApk);
-        try {
 
-            int secondaryNumber = 2;
+        int secondaryNumber = 2;
+        // 从apk中获取对应classesX.dex
+        ZipEntry dexFile = apk.getEntry(DEX_PREFIX + secondaryNumber + DEX_SUFFIX);
+        while (dexFile != null) {
+            String fileName = extractedFilePrefix + secondaryNumber + EXTRACTED_SUFFIX;
+            ExtractedDex extractedFile = new ExtractedDex(dexDir, fileName);
+            files.add(extractedFile);
 
-            ZipEntry dexFile = apk.getEntry(DEX_PREFIX + secondaryNumber + DEX_SUFFIX);
-            while (dexFile != null) {
-                String fileName = extractedFilePrefix + secondaryNumber + EXTRACTED_SUFFIX;
-                ExtractedDex extractedFile = new ExtractedDex(dexDir, fileName);
-                files.add(extractedFile);
+            Log.i(TAG, "Extraction is needed for file " + extractedFile);
+            int numAttempts = 0;
+            boolean isExtractionSuccessful = false;
+            while (numAttempts < MAX_EXTRACT_ATTEMPTS && !isExtractionSuccessful) {
+                numAttempts++;
 
-                Log.i(TAG, "Extraction is needed for file " + extractedFile);
-                int numAttempts = 0;
-                boolean isExtractionSuccessful = false;
-                while (numAttempts < MAX_EXTRACT_ATTEMPTS && !isExtractionSuccessful) {
-                    numAttempts++;
-
-                    // Create a zip file (extractedFile) containing only the secondary dex file
-                    // (dexFile) from the apk.
-                    extract(apk, dexFile, extractedFile, extractedFilePrefix);
-
-                    // Read zip crc of extracted dex
-                    try {
-                        extractedFile.crc = getZipCrc(extractedFile);
-                        isExtractionSuccessful = true;
-                    } catch (IOException e) {
-                        isExtractionSuccessful = false;
-                        Log.w(TAG, "Failed to read crc from " + extractedFile.getAbsolutePath(), e);
-                    }
-
-                    // Log size and crc of the extracted zip file
-                    Log.i(TAG, "Extraction " + (isExtractionSuccessful ? "succeeded" : "failed")
-                            + " '" + extractedFile.getAbsolutePath() + "': length "
-                            + extractedFile.length() + " - crc: " + extractedFile.crc);
-                    if (!isExtractionSuccessful) {
-                        // Delete the extracted file
-                        extractedFile.delete();
-                        if (extractedFile.exists()) {
-                            Log.w(TAG, "Failed to delete corrupted secondary dex '" +
-                                    extractedFile.getPath() + "'");
-                        }
-                    }
-                }
-                if (!isExtractionSuccessful) {
-                    throw new IOException("Could not create zip file " +
-                            extractedFile.getAbsolutePath() + " for secondary dex (" +
-                            secondaryNumber + ")");
-                }
-                secondaryNumber++;
-                dexFile = apk.getEntry(DEX_PREFIX + secondaryNumber + DEX_SUFFIX);
-            }
-        } finally {
-            try {
-                apk.close();
-            } catch (IOException e) {
-                Log.w(TAG, "Failed to close resource", e);
+                // Create a zip file (extractedFile) containing only the secondary dex file
+                // (dexFile) from the apk.
+                // 创建zip文件，并提取.dex文件
+                extract(apk, dexFile, extractedFile, extractedFilePrefix);
+                // .... 后面的都是一些判断
             }
         }
-
         return files;
     }
 
@@ -316,8 +285,9 @@ final class MultiDexExtractor implements Closeable {
      * Save {@link SharedPreferences}. Should be called only while owning the lock on
      * {@link #LOCK_FILENAME}.
      */
+
     private static void putStoredApkInfo(Context context, String keyPrefix, long timeStamp,
-            long crc, List<ExtractedDex> extractedDexes) {
+                                         long crc, List<ExtractedDex> extractedDexes) {
         SharedPreferences prefs = getMultiDexPreferences(context);
         SharedPreferences.Editor edit = prefs.edit();
         edit.putLong(keyPrefix + KEY_TIME_STAMP, timeStamp);
@@ -373,7 +343,7 @@ final class MultiDexExtractor implements Closeable {
     }
 
     private static void extract(ZipFile apk, ZipEntry dexFile, File extractTo,
-            String extractedFilePrefix) throws IOException, FileNotFoundException {
+                                String extractedFilePrefix) throws IOException, FileNotFoundException {
 
         InputStream in = apk.getInputStream(dexFile);
         ZipOutputStream out = null;

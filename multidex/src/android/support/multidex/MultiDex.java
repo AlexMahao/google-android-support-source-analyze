@@ -91,11 +91,13 @@ public final class MultiDex {
      */
     public static void install(Context context) {
         Log.i(TAG, "Installing application");
+        // 判断是否支持multidex ，5.0以上会自动加载多个classes.dex，不需要手动加载。
         if (IS_VM_MULTIDEX_CAPABLE) {
             Log.i(TAG, "VM has multidex support, MultiDex support library is disabled.");
             return;
         }
 
+        // 如果sdk_version_code < 4 ， multidex 不支持
         if (Build.VERSION.SDK_INT < MIN_SDK_VERSION) {
             throw new RuntimeException("MultiDex installation failed. SDK " + Build.VERSION.SDK_INT
                     + " is unsupported. Min SDK version is " + MIN_SDK_VERSION + ".");
@@ -191,7 +193,7 @@ public final class MultiDex {
      * @param mainContext context used to get filesDir, to save preference and to get the
      * classloader to patch.
      * @param sourceApk Apk file.
-     * @param dataDir data directory to use for code cache simulation.
+     * @param dataDir data directory to use for code cache simulation.  data/data/package
      * @param secondaryFolderName name of the folder for storing extractions.
      * @param prefsKeyPrefix prefix of all stored preference keys.
      * @param reinstallOnPatchRecoverableException if set to true, will attempt a clean extraction
@@ -205,11 +207,15 @@ public final class MultiDex {
                 ClassNotFoundException, InstantiationException {
         synchronized (installedApk) {
             if (installedApk.contains(sourceApk)) {
+                // 是否包含要导入的apk
                 return;
             }
+            // 将apk添加到集合中
             installedApk.add(sourceApk);
 
+            // 5.0以上不用导入  IS_VM_MULTIDEX_CAPABLE
             if (Build.VERSION.SDK_INT > MAX_SUPPORTED_SDK_VERSION) {
+
                 Log.w(TAG, "MultiDex is not guaranteed to work in SDK version "
                         + Build.VERSION.SDK_INT + ": SDK version higher than "
                         + MAX_SUPPORTED_SDK_VERSION + " should be backed by "
@@ -217,7 +223,7 @@ public final class MultiDex {
                         + "case here: java.vm.version=\""
                         + System.getProperty("java.vm.version") + "\"");
             }
-
+            // 希望是默认的BaseDexClassLoader ，修改其内部的DexPathList，往其中添加DexFile文件
             /* The patched class loader is expected to be a descendant of
              * dalvik.system.BaseDexClassLoader. We modify its
              * dalvik.system.DexPathList pathList field to append additional DEX
@@ -244,12 +250,13 @@ public final class MultiDex {
             }
 
             try {
+              // 清空目录  /data/data/< package name >/files/secondary-dexes
               clearOldDexDir(mainContext);
             } catch (Throwable t) {
               Log.w(TAG, "Something went wrong when trying to clear old MultiDex extraction, "
                   + "continuing without cleaning.", t);
             }
-
+            // /data/data/package/code_cache/secondary-dexes/
             File dexDir = getDexDir(mainContext, dataDir, secondaryFolderName);
             // MultiDexExtractor is taking the file lock and keeping it until it is closed.
             // Keep it open during installSecondaryDexes and through forced extraction to ensure no
@@ -257,6 +264,9 @@ public final class MultiDex {
             MultiDexExtractor extractor = new MultiDexExtractor(sourceApk, dexDir);
             IOException closeException = null;
             try {
+                // prefsKeyPrefix  = ""
+                // 获取所有需要加载的dex文件
+                // 将.dex文件转化为/data/data/package/code_cache/secondary-dexes/package--1.apk.classN.zip
                 List<? extends File> files =
                         extractor.load(mainContext, prefsKeyPrefix, false);
                 try {
@@ -315,7 +325,14 @@ public final class MultiDex {
      */
     /* package visible for test */
     static boolean isVMMultidexCapable(String versionString) {
+
+        //You can verify which runtime is in use by calling System.getProperty("java.vm.version").
+        // If ART is in use, the property's value is "2.0.0" or higher.
+
+
         boolean isMultidexCapable = false;
+        //2.1.0的时候开始支持默认加载外部classes.dex,根据vm版本号判断
+
         if (versionString != null) {
             Matcher matcher = Pattern.compile("(\\d+)\\.(\\d+)(\\.\\d+)?").matcher(versionString);
             if (matcher.matches()) {
@@ -420,6 +437,7 @@ public final class MultiDex {
     private static void expandFieldArray(Object instance, String fieldName,
             Object[] extraElements) throws NoSuchFieldException, IllegalArgumentException,
             IllegalAccessException {
+        // 查找dexElements并合并
         Field jlrField = findField(instance, fieldName);
         Object[] original = (Object[]) jlrField.get(instance);
         Object[] combined = (Object[]) Array.newInstance(
@@ -430,6 +448,7 @@ public final class MultiDex {
     }
 
     private static void clearOldDexDir(Context context) throws Exception {
+        // /data/data/< package name >/files/secondary-dexes
         File dexDir = new File(context.getFilesDir(), OLD_SECONDARY_FOLDER_NAME);
         if (dexDir.isDirectory()) {
             Log.i(TAG, "Clearing old secondary dex dir (" + dexDir.getPath() + ").");
@@ -457,6 +476,7 @@ public final class MultiDex {
 
     private static File getDexDir(Context context, File dataDir, String secondaryFolderName)
             throws IOException {
+        // data/data/package/code_cache
         File cache = new File(dataDir, CODE_CACHE_NAME);
         try {
             mkdirChecked(cache);
@@ -468,6 +488,7 @@ public final class MultiDex {
             cache = new File(context.getFilesDir(), CODE_CACHE_NAME);
             mkdirChecked(cache);
         }
+        // data/data/package/code_cache/secondary-dexes
         File dexDir = new File(cache, secondaryFolderName);
         mkdirChecked(dexDir);
         return dexDir;
@@ -636,6 +657,7 @@ public final class MultiDex {
             public Object newInstance(File file, DexFile dex)
                     throws IllegalArgumentException, InstantiationException,
                     IllegalAccessException, InvocationTargetException {
+                // 构造element
                 return elementConstructor.newInstance(file, Boolean.FALSE, file, dex);
             }
         }
@@ -656,7 +678,9 @@ public final class MultiDex {
              * file entries.
              */
             Field pathListField = findField(loader, "pathList");
+            //DexPathList
             Object dexPathList = pathListField.get(loader);
+            // 需要加载的Dex文件
             Object[] elements = new V14().makeDexElements(additionalClassPathEntries);
             try {
                 expandFieldArray(dexPathList, "dexElements", elements);

@@ -1,0 +1,56 @@
+VM with version 1.6.0 does not have multidex support
+07-04 16:19:49.916 I/MultiDex( 4210): install
+07-04 16:19:49.926 I/MultiDex( 4210): MultiDexExtractor.load(/data/app/com.nearme.gamecenter-2.apk, false)
+07-04 16:19:49.926 I/MultiDex( 4210): loading existing secondary dex files
+07-04 16:19:49.926 I/MultiDex( 4210): load found 1 secondary dex files
+07-04 16:19:49.936 I/MultiDex( 4210): install done
+07-04 16:19:50.116 I/MultiDex( 4237): VM with version 1.6.0 does not have multidex support
+07-04 16:19:50.116 I/MultiDex( 4237): install
+07-04 16:19:50.116 I/MultiDex( 4237): MultiDexExtractor.load(/data/app/com.oppo.market-2.apk, false)
+07-04 16:19:50.126 I/MultiDex( 4237): loading existing secondary dex files
+07-04 16:19:50.126 I/MultiDex( 4237): load found 1 secondary dex files
+07-04 16:19:50.126 I/MultiDex( 4237): install done
+07-04 16:19:50.346 I/MultiDex( 4268): VM with version 1.6.0 does not have multidex support
+07-04 16:19:50.346 I/MultiDex( 4268): install
+07-04 16:19:50.346 I/MultiDex( 4268): MultiDexExtractor.load(/data/app/com.oppo.market-2.apk, false)
+07-04 16:19:50.356 I/MultiDex( 4268): loading existing secondary dex files
+07-04 16:19:50.356 I/MultiDex( 4268): load found 1 secondary dex files
+07-04 16:19:50.356 I/MultiDex( 4268): install done
+07-04 16:19:50.566 I/MultiDex( 4312): VM with version 1.6.0 does not have multidex support
+07-04 16:19:50.566 I/MultiDex( 4312): install
+07-04 16:19:50.566 I/MultiDex( 4312): MultiDexExtractor.load(/data/app/com.android.browser-1.apk, false)
+07-04 16:19:50.576 I/MultiDex( 4312): loading existing secondary dex files
+07-04 16:19:50.576 I/MultiDex( 4312): load found 1 secondary dex files
+07-04 16:19:50.576 I/MultiDex( 4312): install done
+07-04 16:19:52.286 I/MultiDex( 4387): VM with version 1.6.0 does not have multidex support
+07-04 16:19:52.286 I/MultiDex( 4387): Installing application
+07-04 16:19:52.286 I/MultiDex( 4387): MultiDexExtractor(/data/app/com.spearbothy.android-2.apk, /data/data/com.spearbothy.android/code_cache/secondary-dexes)
+07-04 16:19:52.296 I/MultiDex( 4387): Blocking on lock /data/data/com.spearbothy.android/code_cache/secondary-dexes/MultiDex.lock
+07-04 16:19:52.296 I/MultiDex( 4387): /data/data/com.spearbothy.android/code_cache/secondary-dexes/MultiDex.lock locked
+// MultidexExtractor.load()
+07-04 16:19:52.296 I/MultiDex( 4387): MultiDexExtractor.load(/data/app/com.spearbothy.android-2.apk, false, )
+// 有新信息变化，删除老的缓存文件
+07-04 16:19:52.306 I/MultiDex( 4387): Detected that extraction must be performed.
+07-04 16:19:52.306 I/MultiDex( 4387): Trying to delete old file /data/data/com.spearbothy.android/code_cache/secondary-dexes/com.spearbothy.android-1.apk.classes2.zip of size 185848
+07-04 16:19:52.306 I/MultiDex( 4387): Deleted old file /data/data/com.spearbothy.android/code_cache/secondary-dexes/com.spearbothy.android-1.apk.classes2.zip
+07-04 16:19:52.306 I/MultiDex( 4387): Trying to delete old file /data/data/com.spearbothy.android/code_cache/secondary-dexes/com.spearbothy.android-1.apk.classes2.dex of size 675216
+07-04 16:19:52.306 I/MultiDex( 4387): Deleted old file /data/data/com.spearbothy.android/code_cache/secondary-dexes/com.spearbothy.android-1.apk.classes2.dex
+// 提取apk中的class文件
+07-04 16:19:52.386 I/MultiDex( 4387): Extraction is needed for file /data/data/com.spearbothy.android/code_cache/secondary-dexes/com.spearbothy.android-2.apk.classes2.zip
+07-04 16:19:52.386 I/MultiDex( 4387): Extracting /data/data/com.spearbothy.android/code_cache/secondary-dexes/tmp-com.spearbothy.android-2.apk.classes762107569.zip
+07-04 16:19:56.016 I/MultiDex( 4387): Renaming to /data/data/com.spearbothy.android/code_cache/secondary-dexes/com.spearbothy.android-2.apk.classes2.zip
+07-04 16:19:56.016 I/MultiDex( 4387): Extraction succeeded '/data/data/com.spearbothy.android/code_cache/secondary-dexes/com.spearbothy.android-2.apk.classes2.zip': length 3843460 - crc: 28802720
+
+07-04 16:19:56.026 I/MultiDex( 4387): load found 1 secondary dex files
+07-04 16:19:59.986 I/MultiDex( 4387): install done
+07-04 16:20:00.276 I/MultiDexPatch( 4387): install
+07-04 16:20:00.336 V/MultiDexPatch( 4387): ----- logArray start -----
+07-04 16:20:00.336 V/MultiDexPatch( 4387): os[0]: zip file "/data/app/com.spearbothy.android-2.apk"
+07-04 16:20:00.336 V/MultiDexPatch( 4387): os[1]: zip file "/data/data/com.spearbothy.android/code_cache/secondary-dexes/com.spearbothy.android-2.apk.classes2.zip"
+07-04 16:20:00.336 V/MultiDexPatch( 4387): ----- logArray start -----
+07-04 16:20:00.336 V/MultiDexPatch( 4387): os[0]: dex file "dalvik.system.DexFile@4256adb8"
+07-04 16:20:00.336 D/MultiDexPatch( 4387): total: 3
+07-04 16:20:00.336 V/MultiDexPatch( 4387): ----- logArray start -----
+07-04 16:20:00.336 V/MultiDexPatch( 4387): os[0]: dex file "dalvik.system.DexFile@4256adb8"
+07-04 16:20:00.336 V/MultiDexPatch( 4387): os[1]: zip file "/data/app/com.spearbothy.android-2.apk"
+07-04 16:20:00.336 V/MultiDexPatch( 4387): os[2]: zip file "/data/data/com.spearbothy.android/code_cache/secondary-dexes/com.spearbothy.android-2.apk.classes2.zip"
